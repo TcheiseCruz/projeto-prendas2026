@@ -7,10 +7,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --verde: #1D9E75;
-      --verde-dark: #0F6E56;
-      --verde-light: #E1F5EE;
-      --verde-mid: #5DCAA5;
+      --verde: #7C3AED;
+      --verde-dark: #5B21B6;
+      --verde-light: #EDE9FE;
+      --verde-mid: #A78BFA;
       --amarelo: #EF9F27;
       --amarelo-light: #FAEEDA;
       --bg: #f7f6f2;
@@ -63,7 +63,7 @@
     }
     .live-dot {
       width: 6px; height: 6px;
-      background: #5DCAA5;
+      background: #A78BFA;
       border-radius: 50%;
       animation: pulse 1.5s infinite;
     }
@@ -156,6 +156,7 @@
     /* Produto list */
     .produto-list { display: flex; flex-direction: column; gap: 4px; }
     .produto-btn {
+      width: 100%;
       padding: 11px 14px;
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -166,9 +167,12 @@
       cursor: pointer;
       text-align: left;
       display: flex;
+      flex-wrap: nowrap;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       transition: all 0.15s;
+      box-sizing: border-box;
     }
     .produto-btn:hover { border-color: var(--border-med); background: #fafaf8; }
     .produto-btn.selected { border-color: var(--verde); background: var(--verde-light); }
@@ -185,6 +189,43 @@
       background: var(--verde);
       color: white;
     }
+
+    /* Quantidade counter inline */
+    .qty-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .qty-btn {
+      width: 22px; height: 22px;
+      background: transparent;
+      border: 1px solid var(--border-med);
+      color: var(--text-secondary);
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.1s;
+      flex-shrink: 0;
+    }
+    .qty-btn:hover { background: var(--verde); color: white; border-color: var(--verde); }
+    .qty-num {
+      min-width: 22px;
+      text-align: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .qty-num.active { color: var(--verde-dark); }
+    .produto-btn.selected .qty-btn { border-color: var(--verde-mid); color: var(--verde-dark); }
+    .produto-btn.selected .qty-btn:hover { background: var(--verde-dark); color: white; border-color: var(--verde-dark); }
+    .produto-btn.selected .qty-num { color: var(--verde-dark); }
+    .produto-row-left { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .produto-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
     /* Selected info */
     .selected-info {
@@ -413,21 +454,11 @@
 
     <div class="selected-info" id="selected-info"></div>
 
-<div style="margin-top:10px;">
-  <label>Quantidade:</label>
-  <input
-    type="number"
-    id="quantidade"
-    min="1"
-    value="1"
-    style="width:100%;padding:10px;margin-top:5px;border-radius:8px;border:1px solid #ccc;"
-    onchange="updateInfo()"
-  >
-</div>
-
 <button class="btn-registrar" id="btn-registrar" onclick="registrar()">
   Registrar entrega
 </button>
+
+  </div><!-- /panel-registrar -->
 
   <!-- RANKING -->
   <div id="panel-ranking" class="panel">
@@ -527,15 +558,49 @@
   }
 
   // Render produtos
+  let produtoQtds = {};
+
   function renderProdutos() {
     document.getElementById('produtos-list').innerHTML = PRODUTOS.map((p, i) => {
       const sel = selectedProdutoIdx === i;
-      return `<button class="produto-btn${sel ? ' selected' : ''}" onclick="window._selectProduto(${i})">
-        <span>${p.nome}</span>
-        <span class="pts-pill">+${p.pts}</span>
-      </button>`;
+      const qtd = produtoQtds[i] || 0;
+      return `<div class="produto-btn${sel ? ' selected' : ''}" onclick="window._selectProduto(${i})">
+        <div class="produto-row-left">
+          <span>${p.nome}</span>
+        </div>
+        <div class="produto-row-right">
+          <div class="qty-ctrl" onclick="event.stopPropagation()">
+            <button class="qty-btn" onclick="window._changeQty(${i}, -1)">−</button>
+            <span class="qty-num${qtd > 0 ? ' active' : ''}" id="qty-num-${i}">${qtd}</span>
+            <button class="qty-btn" onclick="window._changeQty(${i}, 1)">+</button>
+          </div>
+          <span class="pts-pill">+${p.pts}</span>
+        </div>
+      </div>`;
     }).join('');
   }
+
+  window._changeQty = (i, delta) => {
+    const cur = produtoQtds[i] || 0;
+    const next = Math.max(0, cur + delta);
+    produtoQtds[i] = next;
+    const el = document.getElementById(`qty-num-${i}`);
+    if (el) {
+      el.textContent = next;
+      el.className = 'qty-num' + (next > 0 ? ' active' : '');
+    }
+    // Auto-select when incrementing, deselect when back to 0
+    if (next > 0) {
+      if (selectedProdutoIdx !== i) {
+        selectedProdutoIdx = i;
+        renderProdutos();
+      }
+    } else if (selectedProdutoIdx === i) {
+      selectedProdutoIdx = null;
+      renderProdutos();
+    }
+    updateInfo();
+  };
 
   window._selectTurma = (t) => {
     selectedTurma = t;
@@ -552,16 +617,11 @@
   function updateInfo() {
     const info = document.getElementById('selected-info');
     const btn = document.getElementById('btn-registrar');
-    if (selectedTurma && selectedProdutoIdx !== null) {
+    const qtd = selectedProdutoIdx !== null ? (produtoQtds[selectedProdutoIdx] || 0) : 0;
+    if (selectedTurma && selectedProdutoIdx !== null && qtd > 0) {
       const p = PRODUTOS[selectedProdutoIdx];
-
-const qtd =
-  parseInt(document.getElementById('quantidade')?.value || 1);
-
-const total = p.pts * qtd;
-
-info.innerHTML =
-`<strong>${selectedTurma}</strong> entregou <strong>${qtd}x ${p.nome}</strong> → <strong>+${total} pontos</strong>`;
+      const total = p.pts * qtd;
+      info.innerHTML = `<strong>${selectedTurma}</strong> entregou <strong>${qtd}x ${p.nome}</strong> → <strong>+${total} pontos</strong>`;
       info.classList.add('visible');
       btn.classList.add('visible');
     } else {
@@ -636,8 +696,8 @@ info.innerHTML =
     btn.disabled = true;
     btn.textContent = 'Salvando...';
     const p = PRODUTOS[selectedProdutoIdx];
-    const qtd = 
-        parseInt(document.getElementById('quantidade').value) || 1;
+    const qtd = produtoQtds[selectedProdutoIdx] || 0;
+    if (qtd === 0) return;
 
 const pontosGanhos = p.pts * qtd;
     try {
@@ -654,7 +714,8 @@ const pontosGanhos = p.pts * qtd;
          pts: pontosGanhos,
          ts: serverTimestamp()
       });
-      showToast(`+${p.pts} pts para ${selectedTurma}!`);
+      showToast(`+${pontosGanhos} pts para ${selectedTurma}!`);
+      produtoQtds[selectedProdutoIdx] = 0;
       selectedProdutoIdx = null;
       renderProdutos();
       updateInfo();
