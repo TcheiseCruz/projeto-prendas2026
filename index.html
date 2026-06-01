@@ -412,8 +412,22 @@
     <div class="produto-list" id="produtos-list"></div>
 
     <div class="selected-info" id="selected-info"></div>
-    <button class="btn-registrar" id="btn-registrar" onclick="registrar()">Registrar entrega</button>
-  </div>
+
+<div style="margin-top:10px;">
+  <label>Quantidade:</label>
+  <input
+    type="number"
+    id="quantidade"
+    min="1"
+    value="1"
+    style="width:100%;padding:10px;margin-top:5px;border-radius:8px;border:1px solid #ccc;"
+    onchange="updateInfo()"
+  >
+</div>
+
+<button class="btn-registrar" id="btn-registrar" onclick="registrar()">
+  Registrar entrega
+</button>
 
   <!-- RANKING -->
   <div id="panel-ranking" class="panel">
@@ -490,6 +504,7 @@
   let selectedTurma = null;
   let selectedProdutoIdx = null;
   let saving = false;
+  let quantidade = 1; 
 
   // Populate filter
   const filterSel = document.getElementById('filter-turma');
@@ -539,7 +554,14 @@
     const btn = document.getElementById('btn-registrar');
     if (selectedTurma && selectedProdutoIdx !== null) {
       const p = PRODUTOS[selectedProdutoIdx];
-      info.innerHTML = `<strong>${selectedTurma}</strong> entregou <strong>${p.nome}</strong> → <strong>+${p.pts} pontos</strong>`;
+
+const qtd =
+  parseInt(document.getElementById('quantidade')?.value || 1);
+
+const total = p.pts * qtd;
+
+info.innerHTML =
+`<strong>${selectedTurma}</strong> entregou <strong>${qtd}x ${p.nome}</strong> → <strong>+${total} pontos</strong>`;
       info.classList.add('visible');
       btn.classList.add('visible');
     } else {
@@ -594,7 +616,8 @@
       return `<div class="hist-item">
         <div class="hist-left">
           <div class="h-turma">${h.turma}</div>
-          <div class="h-prod">${h.produto}</div>
+          <div class="h-prod">
+            ${(h.quantidade || 1)}x ${h.produto}</div>
         </div>
         <div class="hist-right">
           <span class="hist-pts">+${h.pts}</span>
@@ -613,18 +636,23 @@
     btn.disabled = true;
     btn.textContent = 'Salvando...';
     const p = PRODUTOS[selectedProdutoIdx];
+    const qtd = 
+        parseInt(document.getElementById('quantidade').value) || 1;
+
+const pontosGanhos = p.pts * qtd;
     try {
       const pontosRef = doc(db, 'pontos', selectedTurma);
       await runTransaction(db, async (tx) => {
         const snap = await tx.get(pontosRef);
         const atual = snap.exists() ? (snap.data().total || 0) : 0;
-        tx.set(pontosRef, { total: atual + p.pts, turma: selectedTurma });
+        tx.set(pontosRef, { total: atual + pontosGanhos, turma: selectedTurma });
       });
       await addDoc(collection(db, 'historico'), {
-        turma: selectedTurma,
-        produto: p.nome,
-        pts: p.pts,
-        ts: serverTimestamp()
+         turma: selectedTurma,
+         produto: p.nome,
+         quantidade: qtd,
+         pts: pontosGanhos,
+         ts: serverTimestamp()
       });
       showToast(`+${p.pts} pts para ${selectedTurma}!`);
       selectedProdutoIdx = null;
