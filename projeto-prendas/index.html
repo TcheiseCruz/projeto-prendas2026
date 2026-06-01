@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gincana de Prendas 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --verde: #1D9E75;
+      --verde-dark: #0F6E56;
+      --verde-light: #E1F5EE;
+      --verde-mid: #5DCAA5;
+      --amarelo: #EF9F27;
+      --amarelo-light: #FAEEDA;
+      --bg: #f7f6f2;
+      --bg-card: #ffffff;
+      --text: #1a1a18;
+      --text-secondary: #6b6b65;
+      --text-tertiary: #a0a09a;
+      --border: rgba(0,0,0,0.08);
+      --border-med: rgba(0,0,0,0.14);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .app-header {
+      background: var(--verde-dark);
+      color: white;
+      padding: 1.5rem 1.25rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .app-header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .app-header p {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      background: #5DCAA5;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 82px;
+      z-index: 40;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      color: var(--verde-dark);
+      border-bottom-color: var(--verde);
+      font-weight: 500;
+    }
+
+    /* Main */
+    .main { padding: 1.25rem; max-width: 640px; margin: 0 auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Section label */
+    .step-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+      margin-top: 1.5rem;
+    }
+    .step-label:first-child { margin-top: 0; }
+
+    /* Turma grid */
+    .turma-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-bottom: 0.5rem;
+    }
+    .turma-btn {
+      padding: 10px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .turma-btn:hover { border-color: var(--verde-mid); background: var(--verde-light); }
+    .turma-btn.selected {
+      background: var(--verde);
+      border-color: var(--verde);
+      color: white;
+    }
+    .turma-btn .t-pts {
+      font-size: 11px;
+      opacity: 0.6;
+      font-weight: 500;
+    }
+    .turma-btn.selected .t-pts { opacity: 0.8; }
+
+    /* Produto list */
+    .produto-list { display: flex; flex-direction: column; gap: 4px; }
+    .produto-btn {
+      padding: 11px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .produto-btn:hover { border-color: var(--border-med); background: #fafaf8; }
+    .produto-btn.selected { border-color: var(--verde); background: var(--verde-light); }
+    .pts-pill {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--verde-dark);
+      background: var(--verde-light);
+      padding: 2px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .produto-btn.selected .pts-pill {
+      background: var(--verde);
+      color: white;
+    }
+
+    /* Selected info */
+    .selected-info {
+      background: var(--verde-light);
+      border: 1px solid var(--verde-mid);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--verde-dark);
+      margin-top: 1rem;
+      display: none;
+    }
+    .selected-info.visible { display: block; }
+    .selected-info strong { font-weight: 500; }
+
+    /* Registrar button */
+    .btn-registrar {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--verde);
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-registrar:hover { background: var(--verde-dark); }
+    .btn-registrar:active { transform: scale(0.98); }
+    .btn-registrar.visible { display: block; }
+    .btn-registrar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Ranking */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+    .metric-card .m-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+    .metric-card .m-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
+    .metric-card .m-val.small { font-size: 14px; margin-top: 2px; }
+
+    .ranking-list { display: flex; flex-direction: column; gap: 6px; }
+    .rank-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .rank-item.top1 { border-color: var(--amarelo); background: var(--amarelo-light); }
+    .rank-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name { font-size: 14px; font-weight: 500; }
+    .rank-bar-wrap {
+      width: 80px;
+      height: 5px;
+      background: var(--border);
+      border-radius: 4px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    .rank-bar-fill {
+      height: 100%;
+      background: var(--verde);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .rank-item.top1 .rank-bar-fill { background: var(--amarelo); }
+    .rank-pts {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--verde-dark);
+      flex-shrink: 0;
+    }
+    .rank-item.top1 .rank-pts { color: #854F0B; }
+    .rank-entregas {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* Histórico */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .filter-row label { font-size: 13px; color: var(--text-secondary); }
+    .filter-row select {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 7px 10px;
+      border: 1px solid var(--border-med);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .hist-list { display: flex; flex-direction: column; gap: 4px; }
+    .hist-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .hist-left { font-size: 13px; }
+    .hist-left .h-turma { font-weight: 500; }
+    .hist-left .h-prod { color: var(--text-secondary); font-size: 12px; margin-top: 1px; }
+    .hist-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .hist-pts { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--verde-dark); }
+    .hist-hora { font-size: 11px; color: var(--text-tertiary); }
+    .btn-undo {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      background: none;
+      border: 1px solid var(--border-med);
+      border-radius: 4px;
+      padding: 3px 7px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-undo:hover { background: #fff0f0; border-color: #f09595; color: #A32D2D; }
+
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text-tertiary); font-size: 13px; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--verde-dark);
+      color: white;
+      padding: 11px 20px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 999;
+      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { background: #A32D2D; }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 200;
+    }
+    .loading-overlay p { font-size: 13px; color: var(--text-secondary); }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border-med);
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p>Conectando ao banco de dados...</p>
+</div>
+
+<header class="app-header">
+  <h1>Gincana de Prendas 2026</h1>
+  <p>EMEI João Fernandes · Arraial das Nações · 27 de junho</p>
+  <div class="live-badge"><div class="live-dot"></div> Tempo real</div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('registrar', this)">Registrar</button>
+  <button class="tab-btn" onclick="switchTab('ranking', this)">Ranking</button>
+  <button class="tab-btn" onclick="switchTab('historico', this)">Histórico</button>
+</nav>
+
+<main class="main">
+
+  <!-- REGISTRAR -->
+  <div id="panel-registrar" class="panel active">
+    <p class="step-label">1. Selecione a turma</p>
+    <div class="turma-grid" id="turmas-grid"></div>
+
+    <p class="step-label">2. Selecione o produto entregue</p>
+    <div class="produto-list" id="produtos-list"></div>
+
+    <div class="selected-info" id="selected-info"></div>
+    <button class="btn-registrar" id="btn-registrar" onclick="registrar()">Registrar entrega</button>
+  </div>
+
+  <!-- RANKING -->
+  <div id="panel-ranking" class="panel">
+    <div class="metrics" id="metrics"></div>
+    <div class="ranking-list" id="ranking-list"></div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="panel-historico" class="panel">
+    <div class="filter-row">
+      <label>Turma:</label>
+      <select id="filter-turma" onchange="renderHistorico()">
+        <option value="">Todas as turmas</option>
+      </select>
+    </div>
+    <div class="hist-list" id="hist-list"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, doc, onSnapshot,
+    runTransaction, addDoc, deleteDoc, serverTimestamp, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1EU0QnxWVP9ylxTE_LDFIrq3VLqKfMkU",
+    authDomain: "prendas2026-94239.firebaseapp.com",
+    projectId: "prendas2026-94239",
+    storageBucket: "prendas2026-94239.firebasestorage.app",
+    messagingSenderId: "818207231160",
+    appId: "1:818207231160:web:56dec1f19288f960bf384d"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const TURMAS = [
+    '6º Ano A','6º Ano B','6º Ano C','6º Ano D',
+    '7º Ano A','7º Ano B','7º Ano C','7º Ano D',
+    '8º Ano A','8º Ano B','8º Ano C','8º Ano D','8º Ano E','8º Ano F',
+    '9º Ano A','9º Ano B','9º Ano C','9º Ano D','9º Ano E'
+  ];
+
+  const PRODUTOS = [
+    { nome: 'Óleo de soja (900ml)', pts: 100 },
+    { nome: 'Refrigerante (2L)', pts: 100 },
+    { nome: 'Leite integral (1L)', pts: 100 },
+    { nome: 'Leite Condensado', pts: 100 },
+    { nome: 'Copo descartável 500ml (100u)', pts: 90 },
+    { nome: 'Água (500ml)', pts: 90 },
+    { nome: 'Papel toalha (2 rolos)', pts: 90 },
+    { nome: 'Creme de Leite', pts: 90 },
+    { nome: 'Açúcar Refinado (1kg)', pts: 70 },
+    { nome: 'Milho canjica (500g)', pts: 70 },
+    { nome: 'Milho pipoca (500g)', pts: 70 },
+    { nome: 'Achocolatado (400g)', pts: 70 },
+    { nome: 'Papel Higiênico (4 rolos)', pts: 50 },
+    { nome: 'Ervilha (lata)', pts: 40 },
+    { nome: 'Milho verde (lata)', pts: 40 },
+    { nome: 'Molho de tomate (340g)', pts: 30 },
+    { nome: 'Embalagem plástica para cachorro quente', pts: 30 },
+    { nome: 'Guardanapo de papel descartável (100u)', pts: 30 },
+    { nome: 'Garfo ou colher plástica descartável (100u)', pts: 30 },
+  ];
+
+  let pontos = {};
+  let historico = [];
+  let selectedTurma = null;
+  let selectedProdutoIdx = null;
+  let saving = false;
+
+  // Populate filter
+  const filterSel = document.getElementById('filter-turma');
+  TURMAS.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    filterSel.appendChild(o);
+  });
+
+  // Render turmas
+  function renderTurmas() {
+    document.getElementById('turmas-grid').innerHTML = TURMAS.map(t => {
+      const pts = pontos[t] || 0;
+      const sel = selectedTurma === t;
+      return `<button class="turma-btn${sel ? ' selected' : ''}" onclick="window._selectTurma('${t}')">
+        <span>${t}</span>
+        <span class="t-pts">${pts} pts</span>
+      </button>`;
+    }).join('');
+  }
+
+  // Render produtos
+  function renderProdutos() {
+    document.getElementById('produtos-list').innerHTML = PRODUTOS.map((p, i) => {
+      const sel = selectedProdutoIdx === i;
+      return `<button class="produto-btn${sel ? ' selected' : ''}" onclick="window._selectProduto(${i})">
+        <span>${p.nome}</span>
+        <span class="pts-pill">+${p.pts}</span>
+      </button>`;
+    }).join('');
+  }
+
+  window._selectTurma = (t) => {
+    selectedTurma = t;
+    renderTurmas();
+    updateInfo();
+  };
+
+  window._selectProduto = (i) => {
+    selectedProdutoIdx = i;
+    renderProdutos();
+    updateInfo();
+  };
+
+  function updateInfo() {
+    const info = document.getElementById('selected-info');
+    const btn = document.getElementById('btn-registrar');
+    if (selectedTurma && selectedProdutoIdx !== null) {
+      const p = PRODUTOS[selectedProdutoIdx];
+      info.innerHTML = `<strong>${selectedTurma}</strong> entregou <strong>${p.nome}</strong> → <strong>+${p.pts} pontos</strong>`;
+      info.classList.add('visible');
+      btn.classList.add('visible');
+    } else {
+      info.classList.remove('visible');
+      btn.classList.remove('visible');
+    }
+  }
+
+  // Ranking
+  function renderRanking() {
+    const sorted = TURMAS
+      .map(t => ({ t, pts: pontos[t] || 0, n: historico.filter(h => h.turma === t).length }))
+      .sort((a, b) => b.pts - a.pts);
+    const max = sorted[0]?.pts || 1;
+    const total = sorted.reduce((s, x) => s + x.pts, 0);
+    const lider = sorted[0]?.pts > 0 ? sorted[0].t : '—';
+
+    document.getElementById('metrics').innerHTML = `
+      <div class="metric-card"><div class="m-label">Total de pontos</div><div class="m-val">${total.toLocaleString('pt-BR')}</div></div>
+      <div class="metric-card"><div class="m-label">Entregas</div><div class="m-val">${historico.length}</div></div>
+      <div class="metric-card"><div class="m-label">Turma líder</div><div class="m-val small">${lider}</div></div>
+    `;
+
+    const medals = ['🥇','🥈','🥉'];
+    document.getElementById('ranking-list').innerHTML = sorted.map((x, i) => {
+      const pct = max > 0 ? Math.round((x.pts / max) * 100) : 0;
+      return `<div class="rank-item${i === 0 && x.pts > 0 ? ' top1' : ''}">
+        <div class="rank-num">${i < 3 && x.pts > 0 ? medals[i] : i + 1}</div>
+        <div class="rank-info">
+          <div class="rank-name">${x.t}</div>
+          <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="rank-entregas">${x.n} entregas</div>
+        <div class="rank-pts">${x.pts}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Histórico
+  window.renderHistorico = function() {
+    const filtro = document.getElementById('filter-turma').value;
+    const lista = filtro ? historico.filter(h => h.turma === filtro) : historico;
+    const el = document.getElementById('hist-list');
+    if (lista.length === 0) {
+      el.innerHTML = '<div class="empty">Nenhuma entrega registrada ainda.</div>';
+      return;
+    }
+    el.innerHTML = lista.map(h => {
+      const d = h.ts ? new Date(h.ts.seconds * 1000) : new Date();
+      const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `<div class="hist-item">
+        <div class="hist-left">
+          <div class="h-turma">${h.turma}</div>
+          <div class="h-prod">${h.produto}</div>
+        </div>
+        <div class="hist-right">
+          <span class="hist-pts">+${h.pts}</span>
+          <span class="hist-hora">${dia} ${hora}</span>
+          <button class="btn-undo" onclick="window._desfazer('${h.id}', '${h.turma}', ${h.pts})">desfazer</button>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  // Registrar
+  window.registrar = async function() {
+    if (!selectedTurma || selectedProdutoIdx === null || saving) return;
+    saving = true;
+    const btn = document.getElementById('btn-registrar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    const p = PRODUTOS[selectedProdutoIdx];
+    try {
+      const pontosRef = doc(db, 'pontos', selectedTurma);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(pontosRef);
+        const atual = snap.exists() ? (snap.data().total || 0) : 0;
+        tx.set(pontosRef, { total: atual + p.pts, turma: selectedTurma });
+      });
+      await addDoc(collection(db, 'historico'), {
+        turma: selectedTurma,
+        produto: p.nome,
+        pts: p.pts,
+        ts: serverTimestamp()
+      });
+      showToast(`+${p.pts} pts para ${selectedTurma}!`);
+      selectedProdutoIdx = null;
+      renderProdutos();
+      updateInfo();
+    } catch(e) {
+      showToast('Erro ao salvar. Tente novamente.', true);
+    }
+    saving = false;
+    btn.disabled = false;
+    btn.textContent = 'Registrar entrega';
+  };
+
+  // Desfazer
+  window._desfazer = async (id, turma, pts) => {
+    try {
+      const pontosRef = doc(db, 'pontos', turma);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(pontosRef);
+        const atual = snap.exists() ? (snap.data().total || 0) : 0;
+        tx.set(pontosRef, { total: Math.max(0, atual - pts), turma });
+      });
+      await deleteDoc(doc(db, 'historico', id));
+      showToast('Entrada removida.');
+    } catch(e) {
+      showToast('Erro ao desfazer.', true);
+    }
+  };
+
+  // Toast
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Tab switch
+  window.switchTab = function(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+    if (tab === 'ranking') renderRanking();
+    if (tab === 'historico') renderHistorico();
+  };
+
+  // Firestore listeners (tempo real)
+  onSnapshot(collection(db, 'pontos'), (snap) => {
+    pontos = {};
+    snap.forEach(d => { pontos[d.id] = d.data().total || 0; });
+    renderTurmas();
+    if (document.getElementById('panel-ranking').classList.contains('active')) renderRanking();
+  });
+
+  onSnapshot(
+    query(collection(db, 'historico'), orderBy('ts', 'desc')),
+    (snap) => {
+      historico = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (document.getElementById('panel-historico').classList.contains('active')) renderHistorico();
+      if (document.getElementById('panel-ranking').classList.contains('active')) renderRanking();
+      document.getElementById('loading').style.display = 'none';
+    },
+    (err) => {
+      console.error(err);
+      document.getElementById('loading').style.display = 'none';
+      showToast('Erro de conexão com o banco.', true);
+    }
+  );
+
+  // Init render
+  renderTurmas();
+  renderProdutos();
+</script>
+</body>
+</html>
