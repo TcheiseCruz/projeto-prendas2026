@@ -431,10 +431,28 @@
 </div>
 
 <header class="app-header">
-  <h1>Gincana de Prendas 2026</h1>
-  <p>EMEF Fioravante Barletta · Arraial das Nações · 27 de junho</p>
-  <div class="live-badge"><div class="live-dot"></div> Tempo real</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div>
+      <h1>Gincana de Prendas 2026</h1>
+      <p>EMEF Fioravante Barletta · Arraial das Nações · 27 de junho</p>
+      <div class="live-badge"><div class="live-dot"></div> Tempo real</div>
+    </div>
+    <button id="auth-btn" onclick="window._toggleAuth()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:8px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px;white-space:nowrap;">Entrar</button>
+  </div>
 </header>
+
+<!-- Login modal -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px 24px;width:calc(100% - 48px);max-width:360px;margin:0 auto;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px;">Acesso restrito</h2>
+    <p style="font-size:13px;color:#6b6b65;margin-bottom:20px;">Apenas administradores podem registrar entregas.</p>
+    <input id="login-email" type="email" placeholder="E-mail" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:10px;box-sizing:border-box;">
+    <input id="login-senha" type="password" placeholder="Senha" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:6px;box-sizing:border-box;">
+    <p id="login-erro" style="font-size:12px;color:#A32D2D;min-height:18px;margin-bottom:10px;"></p>
+    <button onclick="window._login()" style="width:100%;padding:12px;background:#5B21B6;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;">Entrar</button>
+    <button onclick="window._fecharModal()" style="width:100%;padding:10px;background:none;border:none;font-size:13px;color:#6b6b65;cursor:pointer;margin-top:6px;">Cancelar</button>
+  </div>
+</div>
 
 <nav class="tabs">
   <button class="tab-btn active" onclick="switchTab('registrar', this)">Registrar</button>
@@ -488,6 +506,9 @@
     getFirestore, collection, doc, onSnapshot,
     runTransaction, addDoc, deleteDoc, serverTimestamp, query, orderBy
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyA1EU0QnxWVP9ylxTE_LDFIrq3VLqKfMkU",
@@ -500,6 +521,8 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+  let currentUser = null;
 
   const TURMAS = [
     '6º Ano A','6º Ano B','6º Ano C','6º Ano D',
@@ -784,6 +807,72 @@ const pontosGanhos = p.pts * qtd;
       showToast('Erro de conexão com o banco.', true);
     }
   );
+
+  // Auth
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    const btn = document.getElementById('auth-btn');
+    const tab = document.querySelector('.tab-btn'); // aba Registrar
+    if (user) {
+      btn.textContent = 'Sair';
+      tab.style.display = '';
+    } else {
+      btn.textContent = 'Entrar';
+      tab.style.display = 'none';
+      // Se estava na aba registrar, muda para ranking
+      if (document.getElementById('panel-registrar').classList.contains('active')) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('panel-ranking').classList.add('active');
+        renderRanking();
+      }
+    }
+  });
+
+  window._toggleAuth = () => {
+    if (currentUser) {
+      signOut(auth);
+    } else {
+      const modal = document.getElementById('login-modal');
+      modal.style.display = 'flex';
+      document.getElementById('login-erro').textContent = '';
+    }
+  };
+
+  window._login = async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    const erro = document.getElementById('login-erro');
+    erro.textContent = '';
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+      window._fecharModal();
+      // Ir para aba registrar
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('panel-registrar').classList.add('active');
+    } catch(e) {
+      erro.textContent = 'E-mail ou senha incorretos.';
+    }
+  };
+
+  window._fecharModal = () => {
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-senha').value = '';
+  };
+
+  // Fechar modal clicando fora
+  document.getElementById('login-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) window._fecharModal();
+  });
+
+  // Enter no campo senha faz login
+  document.getElementById('login-senha').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') window._login();
+  });
 
   // Init render
   renderTurmas();
