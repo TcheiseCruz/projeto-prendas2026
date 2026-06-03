@@ -611,7 +611,7 @@
   <button class="tab-btn active" onclick="switchTab('produtos', this)">Produtos</button>
   <button class="tab-btn" onclick="switchTab('registrar', this)" id="tab-registrar" style="display:none">Registrar</button>
   <button class="tab-btn" onclick="switchTab('ranking', this)">Ranking</button>
-  <button class="tab-btn" onclick="switchTab('historico', this)">Histórico</button>
+  <button class="tab-btn" onclick="switchTab('historico', this)" id="tab-historico" style="display:none">Histórico</button>
 </nav>
 
 <main class="main">
@@ -754,6 +754,10 @@
     document.getElementById('produtos-list').innerHTML = PRODUTOS.map((p, i) => {
       const sel = selectedProdutoIdx === i;
       const qtd = produtoQtds[i] || 0;
+      const isRl = relampagoAtual && relampagoAtual.ativo && relampagoAtual.produto === p.nome;
+      const pts = isRl ? relampagoAtual.pontos : p.pts;
+      const pillLabel = isRl ? `⚡ ${pts}` : `+${pts}`;
+      const pillStyle = isRl ? 'background:linear-gradient(135deg,#F59E0B,#EF4444);color:white;' : '';
       return `<div class="produto-btn${sel ? ' selected' : ''}" onclick="window._selectProduto(${i})">
         <div class="produto-row-left">
           <span>${p.nome}</span>
@@ -764,7 +768,7 @@
             <span class="qty-num${qtd > 0 ? ' active' : ''}" id="qty-num-${i}">${qtd}</span>
             <button class="qty-btn" onclick="window._changeQty(${i}, 1)">+</button>
           </div>
-          <span class="pts-pill">+${p.pts}</span>
+          <span class="pts-pill" id="pill-produto-${i}" style="${pillStyle}">${pillLabel}</span>
         </div>
       </div>`;
     }).join('');
@@ -810,8 +814,10 @@
     const qtd = selectedProdutoIdx !== null ? (produtoQtds[selectedProdutoIdx] || 0) : 0;
     if (selectedTurma && selectedProdutoIdx !== null && qtd > 0) {
       const p = PRODUTOS[selectedProdutoIdx];
-      const total = p.pts * qtd;
-      info.innerHTML = `<strong>${selectedTurma}</strong> entregou <strong>${qtd}x ${p.nome}</strong> → <strong>+${total} pontos</strong>`;
+      const isRl = relampagoAtual && relampagoAtual.ativo && relampagoAtual.produto === p.nome;
+      const pts = isRl ? relampagoAtual.pontos : p.pts;
+      const total = pts * qtd;
+      info.innerHTML = `<strong>${selectedTurma}</strong> entregou <strong>${qtd}x ${p.nome}</strong> → <strong>+${total} pontos</strong>${isRl ? ' ⚡' : ''}`;
       info.classList.add('visible');
       btn.classList.add('visible');
     } else {
@@ -878,6 +884,9 @@
     }).join('');
   };
 
+  // Estado relâmpago atual (atualizado pelo onSnapshot)
+  let relampagoAtual = null;
+
   // Registrar
   window.registrar = async function() {
     if (!selectedTurma || selectedProdutoIdx === null || saving) return;
@@ -889,7 +898,11 @@
     const qtd = produtoQtds[selectedProdutoIdx] || 0;
     if (qtd === 0) return;
 
-const pontosGanhos = p.pts * qtd;
+    // Usa pontos do relâmpago se o produto for o relâmpago ativo
+    const ptsPorUnidade = (relampagoAtual && relampagoAtual.ativo && relampagoAtual.produto === p.nome)
+      ? relampagoAtual.pontos
+      : p.pts;
+    const pontosGanhos = ptsPorUnidade * qtd;
     try {
       const pontosRef = doc(db, 'pontos', selectedTurma);
       await runTransaction(db, async (tx) => {
@@ -979,19 +992,23 @@ const pontosGanhos = p.pts * qtd;
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
     const btn = document.getElementById('auth-btn');
-    const tab = document.getElementById('tab-registrar');
+    const tabReg = document.getElementById('tab-registrar');
+    const tabHist = document.getElementById('tab-historico');
     if (user) {
       btn.textContent = 'Sair';
-      tab.style.display = '';
-      // Mostra painel admin do relâmpago
+      tabReg.style.display = '';
+      tabHist.style.display = '';
       getDoc(doc(db, 'config', 'relampago')).then(snap => {
         renderRelampagoAdmin(snap.exists() ? snap.data() : null);
       });
     } else {
       btn.textContent = 'Entrar';
-      tab.style.display = 'none';
+      tabReg.style.display = 'none';
+      tabHist.style.display = 'none';
       document.getElementById('relampago-admin').style.display = 'none';
-      if (document.getElementById('panel-registrar').classList.contains('active')) {
+      const panelReg = document.getElementById('panel-registrar');
+      const panelHist = document.getElementById('panel-historico');
+      if (panelReg.classList.contains('active') || panelHist.classList.contains('active')) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.querySelector('[onclick="switchTab(\'ranking\', this)"]').classList.add('active');
@@ -1072,42 +1089,71 @@ const pontosGanhos = p.pts * qtd;
   // Escuta mudanças em tempo real no doc relampago
   onSnapshot(doc(db, 'config', 'relampago'), (snap) => {
     const data = snap.exists() ? snap.data() : null;
+    relampagoAtual = data;
     renderRelampagoCard(data);
     renderProdutosTabela(data);
+    atualizarPillsRelampago(data); // só atualiza pills, sem re-renderizar tudo
     if (currentUser) renderRelampagoAdmin(data);
   });
 
+  // Atualiza apenas os pills de pontos na lista de produtos sem re-renderizar
+  function atualizarPillsRelampago(data) {
+    PRODUTOS.forEach((p, i) => {
+      const pill = document.querySelector(`#pill-produto-${i}`);
+      if (!pill) return;
+      const isRl = data && data.ativo && data.produto === p.nome;
+      const pts = isRl ? data.pontos : p.pts;
+      pill.textContent = isRl ? `⚡ ${pts}` : `+${pts}`;
+      pill.style.background = isRl ? 'linear-gradient(135deg,#F59E0B,#EF4444)' : '';
+      pill.style.color = isRl ? 'white' : '';
+    });
+  }
+
+  function formatarTimer(diff) {
+    const d = Math.floor(diff / 86400);
+    const h = Math.floor((diff % 86400) / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    if (d > 0) return `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    if (h > 0) return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    return `${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+  }
+
   function renderRelampagoCard(data) {
     const card = document.getElementById('relampago-card');
+    if (relampagoTimer) { clearInterval(relampagoTimer); relampagoTimer = null; }
     if (!data || !data.ativo) {
       card.style.display = 'none';
-      if (relampagoTimer) { clearInterval(relampagoTimer); relampagoTimer = null; }
       return;
     }
-    card.style.display = 'block';
     const expira = data.expira?.toDate ? data.expira.toDate() : new Date(data.expira);
+    let expirado = false;
+
+    // Render estático do card (sem timer) para evitar piscar
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div class="relampago-card">
+        <div class="relampago-badge">⚡ Prenda Relâmpago</div>
+        <div class="relampago-nome">${data.produto}</div>
+        <div class="relampago-pts">${data.pontos} pts <span>neste momento</span></div>
+        <div class="relampago-timer" id="rl-timer-display">⏱ --:--</div>
+      </div>`;
 
     function atualizar() {
-      const agora = new Date();
-      const diff = Math.max(0, Math.floor((expira - agora) / 1000));
-      if (diff === 0) {
-        // Expirou — desativa no Firestore
+      const diff = Math.max(0, Math.floor((expira - new Date()) / 1000));
+      if (diff === 0 && !expirado) {
+        expirado = true;
+        clearInterval(relampagoTimer);
+        relampagoTimer = null;
         setDoc(doc(db, 'config', 'relampago'), { ativo: false }, { merge: true });
         return;
       }
-      const min = String(Math.floor(diff / 60)).padStart(2, '0');
-      const seg = String(diff % 60).padStart(2, '0');
-      card.innerHTML = `
-        <div class="relampago-card">
-          <div class="relampago-badge">⚡ Prenda Relâmpago</div>
-          <div class="relampago-nome">${data.produto}</div>
-          <div class="relampago-pts">${data.pontos} pts <span>neste momento</span></div>
-          <div class="relampago-timer">⏱ ${min}:${seg}</div>
-        </div>`;
+      if (expirado) return;
+      const timerEl = document.getElementById('rl-timer-display');
+      if (timerEl) timerEl.textContent = `⏱ ${formatarTimer(diff)}`;
     }
 
     atualizar();
-    if (relampagoTimer) clearInterval(relampagoTimer);
     relampagoTimer = setInterval(atualizar, 1000);
   }
 
@@ -1136,8 +1182,16 @@ const pontosGanhos = p.pts * qtd;
               <input type="number" id="rl-pontos" value="200" min="1">
             </div>
             <div style="flex:1">
-              <label>Duração (minutos)</label>
-              <input type="number" id="rl-minutos" value="10" min="1" max="120">
+              <label>Duração</label>
+              <input type="number" id="rl-duracao" value="10" min="1">
+            </div>
+            <div style="flex:0 0 auto">
+              <label>&nbsp;</label>
+              <select id="rl-unidade" style="padding:9px 8px;border:1px solid var(--border-med);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:white;">
+                <option value="min">min</option>
+                <option value="hora">hora(s)</option>
+                <option value="dia">dia(s)</option>
+              </select>
             </div>
           </div>
           <button class="btn-ativar-relampago" onclick="window._ativarRelampago()">⚡ Ativar agora</button>
@@ -1149,8 +1203,10 @@ const pontosGanhos = p.pts * qtd;
     const sel = document.getElementById('rl-produto').value.split('|');
     const produto = sel[0];
     const pontos = parseInt(document.getElementById('rl-pontos').value) || 200;
-    const minutos = parseInt(document.getElementById('rl-minutos').value) || 10;
-    const expira = new Date(Date.now() + minutos * 60 * 1000);
+    const duracao = parseInt(document.getElementById('rl-duracao').value) || 10;
+    const unidade = document.getElementById('rl-unidade').value;
+    const mult = unidade === 'dia' ? 86400 : unidade === 'hora' ? 3600 : 60;
+    const expira = new Date(Date.now() + duracao * mult * 1000);
     await setDoc(doc(db, 'config', 'relampago'), { ativo: true, produto, pontos, expira });
   };
 
